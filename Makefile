@@ -18,3 +18,4 @@ clean:
 
 install:
 	cp *.so $(LIB_DIR)/.
+	ldconfig
