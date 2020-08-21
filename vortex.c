@@ -122,7 +122,7 @@ void crypto(unsigned char * input, int input_len, unsigned char * output, int ou
     }
     printf("\n");
 #endif
-    do_crypto(1432, input, input_len, output, output_len);
+    do_crypto(1088, input, input_len, output, output_len);
 }
 
 uint64_t string_to_mac(const char * mac) {
