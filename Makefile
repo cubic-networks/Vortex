@@ -1,21 +1,14 @@
 CC=gcc
-CFLAG=-O3 -Wall -D_C -I.
-SHR_FLAG=-fPIC -shared
-TARGET=libvortex
-LFLAG=-L. -L/usr/lib/x86_64-linux-gnu/ -lssl -lcrypto -lcubic_crypto
-LIB_DIR=/usr/lib/nps
+CFLAG=-O3 -Wall -D_C -g -I../../Vortex/. -I.
+TARGET=enc_test
+LFLAG=-L. -L/usr/lib/nps/ -L/usr/lib/x86_64-linux-gnu/ -lcubic_crypto -lvortex
+SRC=encryption_test.c
 
-SRC=vortex.c
-
-all: 
-	$(CC) $(SHR_FLAG) $(CFLAG) $(SRC) $(LFLAG) -o $(TARGET).so
+all:
+	$(CC) $(CFLAG) -D_VER_PRO $(SRC) $(LFLAG) -o $(TARGET)
 
 debug:
-	$(CC) $(SHR_FLAG) $(CFLAG) -DVORTEX_DEBUG $(SRC) $(LFALG) -o $(TARGET)_debug.so
+	$(CC) $(CFLAG) -DVORTEX_DEBUG $(SRC) $(LFLAG)_dbg -o $(TARGET)_debug
 
 clean:
-	rm $(TARGET)*.so
-
-install:
-	cp *.so $(LIB_DIR)/.
-	ldconfig
+	rm $(TARGET) $(TARGET)_debug
