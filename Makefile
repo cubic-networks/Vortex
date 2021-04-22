@@ -5,7 +5,7 @@ TARGET=enc_test
 LFLAG=-L. -L${LIB_DIR} -lcubic_crypto -lvortex
 SRC=encryption_test.c
 
-all:
+all: debug
 	$(CC) $(CFLAG) $(SRC) $(LFLAG) -o $(TARGET)
 
 debug:
