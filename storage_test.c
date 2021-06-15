@@ -27,17 +27,18 @@ void usage() {
     printf("------------------------------------\n");
     printf("-h\tPrint this help message.\n");
     printf("-v\tVerbose mode. Print more information, exspecially regarding encryption keys.\n");
-    printf("-f\tInput file name\n");
+    printf("-f\tInput file name\t\t"); printf("\033[1;33m"); printf("[Mandatory]\n"); printf("\033[0m");
     printf("-s\tInput file size\n");
     printf("-o\tOutput file name\n");
-    printf("-m\tCrypto mode. 0 for encryption, 1 for decryption. Default is encryption.");
+    printf("-m\tCrypto mode\t\t"); printf("\033[1;33m"); printf("[Mandatory]\n"); printf("\033[0m"); printf("\t0 for encryption, 1 for decryption. Default is encryption.");
     
     printf("\n");
 }
 
 int main (int argc, char * argv[]) {
     int64_t input_len = 0;
-    int idx, c, enc_len = 0, verbose = 0, o_tag = 0, f_tag = 0, crypto_mode = 0, output_len = 0;
+    int idx, c, enc_len = 0, verbose = 0, o_tag = 0, f_tag = 0, crypto_mode = 0;
+    size_t output_len = 0;
     unsigned char enc_list[1024], in_buff[1024], out_buff[1024];
     char input_file[1024], output_file[1024];
     FILE * in_fp, * out_fp;
@@ -147,6 +148,8 @@ int main (int argc, char * argv[]) {
     vortex_assign(0, enc_len, (enc_len == 0) ? (unsigned char *) "" : enc_list);
 
     // read file in 1K block and encrypt, write to output file.
+    if (verbose)
+        printf("start %s with 1K block size.\n", (crypto_mode == 0) ? "encrypting" : "decrypting");
     while (input_len != 0) {
         static size_t res = 0, out_enc_len = 0;
         static size_t rd_len = 0;
@@ -157,7 +160,7 @@ int main (int argc, char * argv[]) {
             goto ERROR_EXIT;
 
         if (verbose)
-            printf("read size: res %lu - rd_len %lu\n", res, rd_len);
+            printf("[rest file size %lu]\t\tread from file: %lu bytes\n", input_len, rd_len);
 
         if (res != rd_len) {
             fprintf(stderr, "file read error.\n");
@@ -178,15 +181,15 @@ int main (int argc, char * argv[]) {
             else
                 goto ERROR_EXIT;
 
-            if (verbose)
-                printf("write size: %lu - %lu\n", res, out_enc_len);
-
             if (res != out_enc_len) {
                 fprintf(stderr, "file write error.\n");
                 goto ERROR_EXIT;
             } else {
                 output_len += res;
             }
+
+            if (verbose)
+                printf("[output file size %lu]\twrite to file: %lu byte\n", output_len, out_enc_len);
         }
     }
 
