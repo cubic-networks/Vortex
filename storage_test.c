@@ -150,6 +150,8 @@ int main (int argc, char * argv[]) {
     // read file in 1K block and encrypt, write to output file.
     if (verbose)
         printf("start %s with 1K block size.\n", (crypto_mode == 0) ? "encrypting" : "decrypting");
+
+    idx = 0;
     while (input_len != 0) {
         static size_t res = 0, out_enc_len = 0;
         static size_t rd_len = 0;
@@ -159,8 +161,10 @@ int main (int argc, char * argv[]) {
         else
             goto ERROR_EXIT;
 
-        if (verbose)
-            printf("[rest file size %lu]\t\tread from file: %lu bytes\n", input_len, rd_len);
+        if (verbose) {
+            printf("loop %d", idx);
+            printf(" [rest file size %lu]\t\tread from file: %lu bytes\n", input_len, rd_len);
+        }
 
         if (res != rd_len) {
             fprintf(stderr, "file read error.\n");
@@ -189,8 +193,10 @@ int main (int argc, char * argv[]) {
             }
 
             if (verbose)
-                printf("[output file size %lu]\twrite to file: %lu byte\n", output_len, out_enc_len);
+                printf("\t [output file size %lu]\twrite to file: %lu byte\n", output_len, out_enc_len);
         }
+
+        ++idx;
     }
 
     goto EXIT;
