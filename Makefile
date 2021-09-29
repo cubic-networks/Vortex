@@ -8,6 +8,7 @@ LFLAG=-L. -L${LIB_DIR} -lpthread -lcubic_crypto -lvortex
 ENC_SRC=encryption_test.c
 STOR_SRC=storage_test.c
 TRAN_SRC=transmit_test.c
+SSL_VER=$(shell expr `openssl version | awk '{print $2}'`)
 
 all: encryption storage transmission debug
 
