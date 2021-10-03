@@ -69,11 +69,10 @@ void * serverThread(void * arg) {
     unsigned char output[1024];
     int output_len = 0;
 
-    printf("%d %d %s %d %d\n", client_sock, enc_len, enc_list, vflag, client_idx);
-
-    printf("entering server thread with new sock id %d\n", client_sock);
-    if (vflag)
+    if (vflag) {
+        printf("entering server thread with new sock id %d\n", client_sock);
         printf("using string \"%s\"[%d] for encryption key generation.\n", enc_list, enc_len);
+    }
 
     vortex_assign(client_sock, enc_len, (enc_len == 0) ? (unsigned char *) "" : (unsigned char *) enc_list);
     if (vflag) {
@@ -96,19 +95,21 @@ void * serverThread(void * arg) {
     while ((n = read(client_sock, buff ,sizeof(buff))) > 0) {
         bzero (output, sizeof(output));
 
-        printf("decrypting %d bytes data received.\n", n);
+        if (vflag)
+            printf("decrypting %d bytes data received.\n", n);
         output_len = vortex_crypto(client_sock, (unsigned char *) buff, n, output, DECRYPT);
 
-        printf("decryption %d bytes to \"%s\"\n", output_len, (char *) output);
-        printf("From client: %s\n", output);
+        if (vflag)
+            printf("decryption %d bytes to \"%s\"\n", output_len, (char *) output);
+        printf("From client %d: %s\n", client_idx, output);
 
         if (strncmp("exit", output, 4) == 0) {
-            printf("Server Exit...\n");
+            printf("Server thread Exit...\n");
             break;
         } else {
             bzero(buff, 128);
             bzero(output, sizeof(output));
-            sprintf(buff, "Server message. Socket %d. Message sequence %d\n", client_sock, seq++);
+            sprintf(buff, "Server message to Client %d: Message sequence %d\n", client_idx, seq++);
             n = strlen(buff);
 
             if ((output_len = vortex_crypto(client_sock, (unsigned char *) buff, n, output, ENCRYPT)) == -1) {
@@ -116,11 +117,13 @@ void * serverThread(void * arg) {
                 break;
             }
 
-            printf("input \"%s\"(%d), encrypted %d bytes to\n\t",
-                    buff, n, output_len);
-            for (idx = 0; idx < output_len; ++idx)
-                printf("%02x", output[idx]);
-            printf("\n");
+            if (vflag) {
+	            printf("input \"%s\"(%d), encrypted %d bytes to\n\t",
+                        buff, n, output_len);
+                for (idx = 0; idx < output_len; ++idx)
+                    printf("%02x", output[idx]);
+                printf("\n");
+            }
 
             write(client_sock, output, output_len);
         }
@@ -172,14 +175,12 @@ int main (int argc, char * argv[]) {
                 switch (option_index) {
                     case 5:
                         strcpy((char *) server_ip, optarg);
-                        if (vflag)
-                            printf("source ip %s[%s] set\n", server_ip, optarg);
+                        printf("source ip %s[%s] set\n", server_ip, optarg);
                         break;
                     case 6:
                         if (optarg) {
                             client_idx = atoi(optarg);
-                            if (vflag)
-                                printf("node index %d[%s] set.\n", client_idx, optarg);
+                            printf("node index %d[%s] set.\n", client_idx, optarg);
                         } else {
                             printf("if this instance is inteded to be run as a client, please provide an index id.\n");
                             usage();
@@ -197,8 +198,7 @@ int main (int argc, char * argv[]) {
                     server_flag = 0;
                     client_flag = 1;
                     mode_set = 1;
-                    if (vflag)
-                        printf("client mode set.\n");
+                    printf("client mode set.\n");
                 } else {
                     printf("server mode already set.\n");
                 }
@@ -208,8 +208,7 @@ int main (int argc, char * argv[]) {
                     server_flag = 1;
                     client_flag = 0;
                     mode_set = 1;
-                    if (vflag)
-                        printf("sever mode set.\n");
+                    printf("sever mode set.\n");
                 } else {
                     printf("client mode already set.\n");
                 }
@@ -234,8 +233,7 @@ int main (int argc, char * argv[]) {
     }
 
     if (vflag)
-        printf("extra encryption engrediance used: %s.\n",
-                enc_list);
+        printf("extra encryption engrediance used: %s.\n", enc_list);
 
     // open socket. if running in local test mode, use UNIX domain socket, use inet sock otherwise
     sock = socket (AF_INET, SOCK_STREAM, 0);
@@ -253,7 +251,8 @@ int main (int argc, char * argv[]) {
     if (vflag)
         printf("branch logic starts.\n");
 
-    printf("vortex init.\n");
+    if (vflag)
+        printf("vortex init.\n");
     vortex_init();
 
     if (server_flag) {
@@ -276,25 +275,27 @@ int main (int argc, char * argv[]) {
             printf("listen failed...\n");
             exit(0);
         } else {
-            if (vflag)
-                printf("Server listening..\n");
+            pthread_attr_t tattr;
+
+            pthread_attr_init(&tattr);
+            pthread_attr_setschedpolicy(&tattr, SCHED_RR);
 
             while (1) {
-                static pthread_attr_t tattr;
                 server_arg_t thread_arg;
 
                 memset(&thread_arg, 0, sizeof(thread_arg));
-                pthread_attr_init(&tattr);
 
+                printf("Server listening, awaiting for client %d to connect.\n", client_idx);
+                thread_arg.sock_fd = accept(sock, (struct sockaddr *) &(thread_arg.addr), &(thread_arg.addr_size));
+                thread_arg.vflag = vflag;
                 // calculate encryption key
-                sprintf((char *) thread_arg.key_eng, "%s%d", enc_list, client_idx); 
+                sprintf((char *) thread_arg.key_eng, "%s%d", enc_list, client_idx);
+                printf("Client %d connected.\n", client_idx);
                 if (vflag)
                     printf("using string [%s] for encryption key generation.\n", thread_arg.key_eng);
                 thread_arg.enc_len = enc_len + 1;
                 thread_arg.client_idx = client_idx;
 
-                thread_arg.sock_fd = accept(sock, (struct sockaddr *) &(thread_arg.addr), &(thread_arg.addr_size));
-                thread_arg.vflag = vflag;
 
                 // generate new pipe, create new thread
                 if (pthread_create(&thread_id[client_idx], &tattr, serverThread, &thread_arg) != 0)
@@ -305,9 +306,12 @@ int main (int argc, char * argv[]) {
                             client_idx, thread_arg.sock_fd);
 
                 pthread_join(thread_id[client_idx], NULL);
+                printf("pthread join successful.\n");
 
+                printf("going for the next connection.\n");
                 ++client_idx;
             }
+            pthread_attr_destroy(&tattr);
         }
     } else if (client_flag) {
         int n;
@@ -321,6 +325,7 @@ int main (int argc, char * argv[]) {
             printf("connection to server error.\n");
             exit(1);
         } else {
+            printf("Server connection established.\n");
             // calculate encryption key
             sprintf((char *) enc_list, "%s%d", enc_list, client_idx);
             enc_len += 1;
@@ -344,6 +349,7 @@ int main (int argc, char * argv[]) {
                 printf("\n");
             }
 
+
             // start sending data
             while (1) {
                 bzero(buff, sizeof(buff));
@@ -360,13 +366,15 @@ int main (int argc, char * argv[]) {
 
                 output[output_len] = '\0';
 
-                printf("input \"%s\"(%d), encrypted %d bytes to\n\t",
-                        buff, n,
-                        output_len);
-                for (idx = 0; idx < output_len; ++idx) {
-                    printf("%02x", output[idx]);
+                if (vflag) {
+                    printf("input \"%s\"(%d), encrypted %d bytes to\n\t",
+                            buff, n,
+                            output_len);
+                    for (idx = 0; idx < output_len; ++idx) {
+                        printf("%02x", output[idx]);
+                    }
+                    printf("\n");
                 }
-                printf("\n");
 
                 //write(sock, buff ,sizeof(buff));
                 write(sock, output, output_len);
@@ -378,11 +386,12 @@ int main (int argc, char * argv[]) {
                 bzero(buff, sizeof(buff));
                 bzero(output, sizeof(output));
                 n = read(sock, buff, sizeof(buff));
-                printf("decrypting %d bytes date received\n", n);
+                if (vflag)
+                    printf("decrypting %d bytes date received\n", n);
                 output_len = vortex_crypto(sock, (unsigned char *) buff, n, output, DECRYPT);
 
-                printf("decryption %d bytes to \"%s\"\n",
-                        output_len, (char *) output);
+                if (vflag)
+                    printf("decryption %d bytes to \"%s\"\n", output_len, (char *) output);
                 printf("From server: %s\n", output);
             }
 
