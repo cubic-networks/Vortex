@@ -1,2 +1,6 @@
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nps
-export LD_LIBRARY_PATH
+#/bin/sh!
+[ ! -d "/path/to/dir" ] && mkdir /usr/lib/nps
+SSL_VER=`openssl version | awk '{print $2}'`
+cp *.so.${SSL_VER} /usr/lib/nps/.
+ln -s libvortex.so.${SSL_VER} libvortex.so
+ln -s libvortex_dbg.so.${SSL_VER} libvortex_dbg.so

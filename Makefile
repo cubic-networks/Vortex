@@ -30,5 +30,7 @@ clean:
 	rm $(ENC_TARGET) $(STOR_TARGET) $(TRAN_TARGET) $(ENC_TARGET)_debug $(STOR_TARGET)_debug $(TRAN_TARGET)_debug
 
 install:
-	cp *.so $(LIB_DIR)/.
+	cp libcubic_crypto.so $(LIB_DIR)/.
+	ln -s $(LIB_DIR)/libvortex.so.* $(LIB_DIR)/libvortex.so
+	ln -s $(LIB_DIR)/libvortex_dbg.so.* $(LIB_DIR)/libvortex_dbg.so
 	ldconfig
